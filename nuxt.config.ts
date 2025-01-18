@@ -1,8 +1,7 @@
 export default defineNuxtConfig({
     compatibilityDate: '2024-11-01',
     devtools: { enabled: true },
-    plugins: ['daisyui'],
-    modules: ['@nuxtjs/tailwindcss'],
+    modules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode'],
     css: ['~/assets/css/tailwind.css'],
     app: {
         head: {
@@ -37,5 +36,12 @@ export default defineNuxtConfig({
                 { rel: 'manifest', href: '/site.webmanifest' },
             ],
         },
+    },
+    colorMode: {
+        classSuffix: '',
+        fallback: 'winter',
+        preference: 'winter',
+        dataValue: 'theme',
+        storageKey: 'nuxt-color-mode',
     },
 })

@@ -6,7 +6,7 @@ useSeoMeta({
 })
 </script>
 <template>
-    <div>
+    <div data-theme="dark">
         <NuxtLayout>
             <NuxtPage />
         </NuxtLayout>
