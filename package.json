@@ -12,11 +12,15 @@
     "dependencies": {
         "@nuxtjs/color-mode": "^3.5.2",
         "@nuxtjs/tailwindcss": "6.13.1",
+        "dictionary-en": "^4.0.0",
+        "en-dictionary": "^2.0.3",
         "nuxt": "^3.15.2",
+        "typo-js": "^1.2.5",
         "vue": "latest",
         "vue-router": "latest"
     },
     "devDependencies": {
+        "@types/bun": "^1.1.18",
         "autoprefixer": "^10.4.20",
         "daisyui": "^4.12.23",
         "sass-embedded": "^1.83.4"
