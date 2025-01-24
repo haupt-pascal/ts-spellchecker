@@ -3,6 +3,11 @@ export default defineNuxtConfig({
     devtools: { enabled: true },
     modules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode'],
     css: ['~/assets/css/tailwind.css'],
+    runtimeConfig: {
+        public: {
+            languageToolApiKey: process.env.NUXT_LANGUAGETOOL_API,
+        },
+    },
     app: {
         head: {
             htmlAttrs: {

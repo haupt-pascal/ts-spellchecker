@@ -3,6 +3,7 @@ const editorRef = ref<HTMLDivElement | null>(null)
 const overlayRef = ref<HTMLDivElement | null>(null)
 const isChecking = ref(false)
 const wrongWords = ref<Array<{ word: string; suggestion: string }>>([])
+const runtimeConfig = useRuntimeConfig()
 
 interface SpellResponse {
     matches: Array<{
@@ -28,10 +29,10 @@ function debounce<T extends (...args: any[]) => any>(
 }
 
 const checkSpelling = async (text: string): Promise<SpellResponse> => {
-    if (!process.env.LANGUAGETOOL_API) {
+    if (!runtimeConfig.public.languageToolApiKey) {
         throw new Error('LANGUAGETOOL_API environment variable is not set')
     }
-    const response = await fetch(process.env.LANGUAGETOOL_API, {
+    const response = await fetch(`${runtimeConfig.public.languageToolApiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ text, language: 'en-US' }),
