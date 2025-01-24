@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const editorRef = ref<HTMLDivElement | null>(null)
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const overlayRef = ref<HTMLDivElement | null>(null)
 const isChecking = ref(false)
 const wrongWords = ref<Array<{ word: string; suggestion: string }>>([])
@@ -40,8 +40,33 @@ const checkSpelling = async (text: string): Promise<SpellResponse> => {
     return response.json()
 }
 
+function getTextareaCoordinates(
+    textarea: HTMLTextAreaElement,
+    position: number
+): { top: number; left: number; lineHeight: number } {
+    const text = textarea.value.substring(0, position)
+    const lines = text.split('\n')
+    const currentLine = lines.length
+    const lineHeight = Number.parseInt(getComputedStyle(textarea).lineHeight)
+    const paddingTop = Number.parseInt(getComputedStyle(textarea).paddingTop)
+    const paddingLeft = Number.parseInt(getComputedStyle(textarea).paddingLeft)
+
+    const lastLineText = lines[lines.length - 1]
+    const textMetrics = getTextWidth(
+        lastLineText,
+        getComputedStyle(textarea).font
+    )
+
+    return {
+        top: (currentLine - 1) * lineHeight + paddingTop - textarea.scrollTop,
+        left: textMetrics + paddingLeft - 15,
+        lineHeight,
+    }
+}
+
 const handleInput = debounce(async (e: Event) => {
-    if (!editorRef.value?.textContent) {
+    const textarea = e.target as HTMLTextAreaElement
+    if (!textarea.value) {
         if (overlayRef.value) overlayRef.value.innerHTML = ''
         wrongWords.value = []
         return
@@ -49,12 +74,11 @@ const handleInput = debounce(async (e: Event) => {
     isChecking.value = true
 
     try {
-        const result = await checkSpelling(editorRef.value.textContent)
+        const result = await checkSpelling(textarea.value)
         if (overlayRef.value) {
             overlayRef.value.innerHTML = ''
             wrongWords.value = result.matches.map((match) => ({
-                // biome-ignore lint/style/noNonNullAssertion: <explanation>
-                word: editorRef.value!.textContent!.slice(
+                word: textarea.value.slice(
                     match.offset,
                     match.offset + match.length
                 ),
@@ -63,65 +87,41 @@ const handleInput = debounce(async (e: Event) => {
 
             // biome-ignore lint/complexity/noForEach: <explanation>
             result.matches.forEach((match) => {
-                const range = document.createRange()
-                const walker = document.createTreeWalker(
-                    // biome-ignore lint/style/noNonNullAssertion: <explanation>
-                    editorRef.value!,
-                    NodeFilter.SHOW_TEXT
+                if (!textareaRef.value) return
+
+                const coords = getTextareaCoordinates(
+                    textareaRef.value,
+                    match.offset
                 )
-                let currentOffset = 0
-                // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-                let node
+                const container = document.createElement('div')
+                container.className = 'absolute group pointer-events-none'
+                container.style.left = `${coords.left}px`
+                container.style.top = `${coords.top}px`
+                container.style.height = `${coords.lineHeight}px`
 
-                // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
-                while ((node = walker.nextNode())) {
-                    // biome-ignore lint/style/noNonNullAssertion: <explanation>
-                    const nodeLength = node.textContent!.length
-                    if (currentOffset + nodeLength > match.offset) {
-                        range.setStart(node, match.offset - currentOffset)
-                        range.setEnd(
-                            node,
-                            match.offset - currentOffset + match.length
-                        )
-                        const rects = range.getClientRects()
-                        if (rects.length > 0) {
-                            const editorRect =
-                                // biome-ignore lint/style/noNonNullAssertion: <explanation>
-                                editorRef.value!.getBoundingClientRect()
-                            const relativeTop = rects[0].top - editorRect.top
+                const error = document.createElement('div')
+                error.className =
+                    'hidden group-hover:block absolute -top-8 left-0 bg-error text-white text-xs px-2 py-1 rounded whitespace-nowrap z-20 pointer-events-none'
+                error.textContent = `${match.message} Suggestion: ${
+                    match.replacements[0]?.value || 'No suggestion'
+                }`
 
-                            const container = document.createElement('div')
-                            container.className =
-                                'absolute group pointer-events-auto cursor-pointer'
-                            container.style.left = `${
-                                rects[0].left - editorRect.left
-                            }px`
-                            container.style.top = `${relativeTop}px`
-                            container.style.width = `${rects[0].width}px`
-                            container.style.height = `${rects[0].height}px`
+                const underline = document.createElement('div')
+                underline.className =
+                    'border-b-2 border-error absolute pointer-events-auto cursor-pointer hover:border-error-focus'
+                const wordWidth = getTextWidth(
+                    textarea.value.slice(
+                        match.offset,
+                        match.offset + match.length
+                    ),
+                    getComputedStyle(textarea).font
+                )
+                underline.style.width = `${wordWidth}px`
+                underline.style.bottom = '0'
 
-                            const error = document.createElement('div')
-                            error.className =
-                                'opacity-0 group-hover:opacity-100 absolute -top-6 left-0 bg-error text-white text-xs px-2 py-1 rounded whitespace-nowrap z-20'
-                            error.textContent = `${match.message} Suggestion: ${
-                                match.replacements[0]?.value || 'No suggestion'
-                            }`
-
-                            const underline = document.createElement('div')
-                            underline.className =
-                                'border-b-2 border-error absolute w-full'
-                            underline.style.top = '100%'
-                            underline.style.transform = 'translateY(0)'
-                            underline.style.left = '-15px'
-
-                            container.appendChild(error)
-                            container.appendChild(underline)
-                            overlayRef.value?.appendChild(container)
-                        }
-                        break
-                    }
-                    currentOffset += nodeLength
-                }
+                container.appendChild(error)
+                container.appendChild(underline)
+                overlayRef.value?.appendChild(container)
             })
         }
     } catch (err) {
@@ -131,6 +131,14 @@ const handleInput = debounce(async (e: Event) => {
 
     isChecking.value = false
 }, 100)
+
+function getTextWidth(text: string, font: string): number {
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    if (!context) return 0
+    context.font = font
+    return context.measureText(text).width
+}
 </script>
 
 <template>
@@ -143,10 +151,9 @@ const handleInput = debounce(async (e: Event) => {
                 >
                     <div class="relative w-full h-full"></div>
                 </div>
-                <div
-                    ref="editorRef"
-                    contenteditable="true"
-                    class="min-h-[200px] min-w-[800px] p-4 bg-base-200 rounded-lg focus:outline-none"
+                <textarea
+                    ref="textareaRef"
+                    class="min-h-[200px] min-w-[800px] p-4 bg-base-200 rounded-lg focus:outline-none resize-none w-full"
                     @input="handleInput"
                 />
             </div>
