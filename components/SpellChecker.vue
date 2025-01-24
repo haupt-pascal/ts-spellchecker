@@ -146,7 +146,7 @@ const handleInput = debounce(async (e: Event) => {
                 <div
                     ref="editorRef"
                     contenteditable="true"
-                    class="min-h-[200px] min-w-64 p-4 bg-base-200 rounded-lg focus:outline-none"
+                    class="min-h-[200px] min-w-[800px] p-4 bg-base-200 rounded-lg focus:outline-none"
                     @input="handleInput"
                 />
             </div>
