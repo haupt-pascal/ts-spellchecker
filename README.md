@@ -1,4 +1,4 @@
-# ts-spellchecker
+# ts-spellchecker | Nuxt3
 
 This project is a simple ts-spellchecker which should be as much performant as possible. It's written in Nuxt3 - but can be adapted to every other as well. Examples attached!
 You will need to set up a LanguageTool API (Documentation for this is WIP)
